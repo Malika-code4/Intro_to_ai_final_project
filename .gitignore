@@ -12,3 +12,4 @@ plots/
 *.db
 *.log
 .vscode/
+!data/Movie_lens_2024.zip 
