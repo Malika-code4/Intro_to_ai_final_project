@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Recommendations — CineMatch</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+
+<body>
+  <nav class="navbar" id="navbar"></nav>
+
+  <div class="page-container">
+    <div id="emailBannerSlot"></div>
+
+    <div class="section-header">
+      <h2>Your recommendations</h2>
+      <span class="subtitle">We use your top ratings and positive comments to suggest the movies you'll love
+        next.</span>
+    </div>
+
+    <div class="recs-layout">
+      <aside class="recs-sidebar">
+        <div id="likedSummary" class="liked-summary"></div>
+
+        <div class="filter-card">
+          <h4>Filters</h4>
+          <div class="filter-group">
+            <label for="genreSelect">Genre</label>
+            <select id="genreSelect" class="genre-filter">
+              <option value="">All genres</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="sortSelect">Sort</label>
+            <select id="sortSelect">
+              <option value="best">Best match</option>
+              <option value="new">Newest</option>
+              <option value="popular">Most popular</option>
+            </select>
+          </div>
+          <div style="margin-top:12px;">
+            <a href="browse.html" class="btn btn-secondary btn-small">Browse more</a>
+          </div>
+        </div>
+      </aside>
+
+      <main class="recs-main">
+        <div class="tab-row" role="tablist">
+          <button class="tab-btn active" id="tabTop">🔥 Top overall</button>
+          <button class="tab-btn" id="tabPersonal">✨ Because you liked...</button>
+        </div>
+
+        <div id="panelTop">
+          <div class="movie-grid" id="topGrid"></div>
+        </div>
+
+        <div id="panelPersonal" style="display:none;">
+          <div class="movie-grid" id="personalGrid"></div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <footer>CineMatch — CS254 Final Project. Front-end demo, mock data only.</footer>
+
+  <!-- Rate + comment modal (so users can keep rating from here too) -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <button class="modal-close" id="modalCloseBtn">✕</button>
+      <div class="modal-poster" id="modalPosterBg">
+        <h3 id="modalTitle"></h3>
+      </div>
+      <div class="modal-body">
+        <p id="modalMeta" style="color:var(--text-muted); font-size:0.85rem; margin-top:0;"></p>
+        <div class="star-picker" id="starPicker"></div>
+        <textarea class="comment-box" id="commentInput" placeholder="What did you think?"></textarea>
+        <button class="btn btn-primary btn-small" id="commentSubmitBtn" style="margin-top:10px;">Post comment</button>
+        <div class="comment-list" id="commentList"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">
+    <div class="toast-title" id="toastTitle"></div>
+    <div class="toast-body" id="toastBody"></div>
+    <button class="btn btn-primary btn-small" id="toastAction" style="display:none;"></button>
+  </div>
+
+  <script src="js/mockData.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    renderNavbar("recs");
+
+    // If the user arrived via the simulated "clicked the email" link,
+    // show a small confirmation banner. A real backend would validate
+    // a token in the URL instead of just checking a query param.
+    function renderEmailBanner() {
+      const params = new URLSearchParams(window.location.search);
+      const slot = document.getElementById("emailBannerSlot");
+      if (params.get("from") === "email") {
+        slot.innerHTML = `
+          <div class="guest-banner" style="background:rgba(62,198,255,0.1); border-color:rgba(62,198,255,0.3);">
+            <p>📬 Welcome back! You followed the link from your CineMatch email — here's what's new based on your activity.</p>
+          </div>
+        `;
+      } else {
+        slot.innerHTML = "";
+      }
+    }
+
+    function switchTab(which) {
+      document.getElementById("tabTop").classList.toggle("active", which === "top");
+      document.getElementById("tabPersonal").classList.toggle("active", which === "personal");
+      document.getElementById("panelTop").style.display = which === "top" ? "block" : "none";
+      document.getElementById("panelPersonal").style.display = which === "personal" ? "block" : "none";
+    }
+
+    function populateGenreSelect() {
+      const sel = document.getElementById('genreSelect');
+      if (!sel || typeof MOCK_GENRES === 'undefined') return;
+      // Clear existing
+      sel.innerHTML = '<option value="">All genres</option>' + MOCK_GENRES.map(g => `<option value="${g}">${g}</option>`).join('');
+    }
+
+    function applyRecsFilters(movies) {
+      const sel = document.getElementById('genreSelect');
+      const sort = document.getElementById('sortSelect');
+      let out = movies.slice();
+      if (sel && sel.value) out = out.filter(m => m.genre === sel.value);
+      if (sort) {
+        const v = sort.value;
+        if (v === 'new') out.sort((a, b) => b.year - a.year);
+        else if (v === 'popular') out.sort((a, b) => b.ratingsCount - a.ratingsCount);
+        else out.sort((a, b) => b.avgRating - a.avgRating);
+      }
+      return out;
+    }
+
+    async function renderTopPicks() {
+      const movies = await API.getTopRecommendations();
+      const grid = document.getElementById("topGrid");
+      const filtered = applyRecsFilters(movies);
+      grid.innerHTML = filtered.map(m => movieCardHTML(m, { showMatch: true, matchLabel: "Popular pick" })).join("");
+      wireMovieCardClicks(grid);
+    }
+
+    function renderLikedSummary() {
+      const container = document.getElementById("likedSummary");
+      const likedMovies = AppState.getLikedMovies();
+      if (likedMovies.length === 0) {
+        container.innerHTML = `
+          <div class="guest-banner" style="padding:18px 22px; border-color: rgba(85,99,255,0.2);">
+            <p>Rate and comment on movies you enjoy, and CineMatch will recommend more films with the same energy.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = `
+        <div class="liked-summary-card">
+          <div>
+            <strong>Your recent likes</strong>
+            <p>Based on your high ratings and positive comments.</p>
+          </div>
+          <div class="liked-tags">
+            ${likedMovies.slice(0, 6).map(item => `<span class="tag">${item.movie.title}</span>`).join("")}
+          </div>
+        </div>
+      `;
+    }
+
+    async function renderPersonalPicks() {
+      const grid = document.getElementById("personalGrid");
+
+      if (!AppState.hasAnyActivity()) {
+        grid.innerHTML = `
+          <div class="empty-state" style="grid-column:1/-1;">
+            <div class="emoji">🎬</div>
+            <p>You haven't rated or commented on anything yet.</p>
+            <a href="browse.html" class="btn btn-primary btn-small" style="margin-top:10px;">Browse and rate a few movies</a>
+          </div>
+        `;
+        return;
+      }
+
+      let movies = await API.getPersonalizedRecommendations();
+      movies = applyRecsFilters(movies);
+      if (movies.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state" style="grid-column:1/-1;">
+            <div class="emoji">🤔</div>
+            <p>Rate a couple more movies 4★ or higher and we'll find matches in those genres.</p>
+            <a href="browse.html" class="btn btn-primary btn-small" style="margin-top:10px;">Keep browsing</a>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = movies.map(m => movieCardHTML(m, { showMatch: true, matchLabel: `Because you liked ${m.genre}` })).join("");
+      wireMovieCardClicks(grid);
+    }
+
+    async function init() {
+      renderEmailBanner();
+      renderLikedSummary();
+      await renderTopPicks();
+      await renderPersonalPicks();
+
+      document.getElementById("tabTop").addEventListener("click", () => switchTab("top"));
+      document.getElementById("tabPersonal").addEventListener("click", () => switchTab("personal"));
+
+      // populate genre filter and wire sidebar controls
+      populateGenreSelect();
+      const genreSel = document.getElementById('genreSelect');
+      const sortSel = document.getElementById('sortSelect');
+      if (genreSel) genreSel.addEventListener('change', async () => { await renderTopPicks(); await renderPersonalPicks(); });
+      if (sortSel) sortSel.addEventListener('change', async () => { await renderTopPicks(); await renderPersonalPicks(); });
+
+      // If arriving from the simulated email, jump straight to the
+      // personalized tab since that's what the notification was about.
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("from") === "email") switchTab("personal");
+    }
+
+    init();
+  </script>
+</body>
+
+</html>

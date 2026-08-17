@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Browse — CineMatch</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+
+<body>
+  <nav class="navbar" id="navbar"></nav>
+
+  <div class="page-container">
+    <div id="guestBannerSlot"></div>
+
+    <div class="section-header">
+      <h2>Browse movies</h2>
+      <span class="subtitle">Rate and comment to shape your recommendations</span>
+    </div>
+
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Search by title or genre..." />
+      <select class="genre-filter" id="genreFilter">
+        <option value="">All genres</option>
+      </select>
+    </div>
+
+    <div class="movie-grid" id="movieGrid"></div>
+  </div>
+
+  <footer>CineMatch — CS254 Final Project. Front-end demo, mock data only.</footer>
+
+  <!-- Rate + comment modal -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <button class="modal-close" id="modalCloseBtn">✕</button>
+      <div class="modal-poster" id="modalPosterBg">
+        <h3 id="modalTitle"></h3>
+      </div>
+      <div class="modal-body">
+        <p id="modalMeta" style="color:var(--text-muted); font-size:0.85rem; margin-top:0;"></p>
+        <div class="star-picker" id="starPicker"></div>
+        <textarea class="comment-box" id="commentInput" placeholder="What did you think?"></textarea>
+        <button class="btn btn-primary btn-small" id="commentSubmitBtn" style="margin-top:10px;">Post comment</button>
+        <div class="comment-list" id="commentList"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">
+    <div class="toast-title" id="toastTitle"></div>
+    <div class="toast-body" id="toastBody"></div>
+    <button class="btn btn-primary btn-small" id="toastAction" style="display:none;"></button>
+  </div>
+
+  <script src="js/mockData.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    renderNavbar("browse");
+
+    let _allMovies = [];
+
+    function renderGuestBanner() {
+      const slot = document.getElementById("guestBannerSlot");
+      if (AppState.isSignedIn()) { slot.innerHTML = ""; return; }
+      slot.innerHTML = `
+        <div class="guest-banner">
+          <p>You're browsing as a <strong>guest</strong>. Your ratings and comments power recommendations only while you're here — <a href="signin.html" style="color:var(--accent-blue); font-weight:700;">sign in</a> to keep them and get email alerts.</p>
+          <a href="signin.html" class="btn btn-secondary btn-small">Sign in</a>
+        </div>
+      `;
+    }
+
+    function renderEnableNotifBannerIfRequested() {
+      const params = new URLSearchParams(window.location.search);
+      const slot = document.getElementById("guestBannerSlot");
+      // only show when user is signed in and the flag is present
+      if (!AppState.isSignedIn() || !params.get('showEnableNotif')) return;
+
+      slot.innerHTML = `
+        <div class="guest-banner" style="border-color:rgba(65,196,255,0.2);">
+          <p>🔔 Want CineMatch to email you when new recommendations are ready?</p>
+          <div style="display:flex; gap:12px; align-items:center;">
+            <button id="enableNotifBtnBrowse" class="btn btn-primary btn-small">Enable email notifications</button>
+            <button id="dismissNotifOffer" class="btn btn-secondary btn-small">No thanks</button>
+          </div>
+        </div>
+      `;
+
+      const enableBtn = document.getElementById('enableNotifBtnBrowse');
+      const dismissBtn = document.getElementById('dismissNotifOffer');
+      if (enableBtn) {
+        enableBtn.addEventListener('click', async () => {
+          await API.subscribeToNotifications();
+          showToast('Notifications enabled', 'We will email you when new recommendations are ready.');
+          slot.innerHTML = '';
+        });
+      }
+      if (dismissBtn) {
+        dismissBtn.addEventListener('click', () => { slot.innerHTML = ''; });
+      }
+    }
+
+    function populateGenreFilter() {
+      const select = document.getElementById("genreFilter");
+      MOCK_GENRES.forEach(g => {
+        const opt = document.createElement("option");
+        opt.value = g;
+        opt.textContent = g;
+        select.appendChild(opt);
+      });
+    }
+
+    function renderGrid(movies) {
+      const grid = document.getElementById("movieGrid");
+      if (movies.length === 0) {
+        grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="emoji">🔍</div>No movies match your search.</div>`;
+        return;
+      }
+      grid.innerHTML = movies.map(m => movieCardHTML(m)).join("");
+      wireMovieCardClicks(grid);
+    }
+
+    function applyFilters() {
+      const query = document.getElementById("searchInput").value.trim().toLowerCase();
+      const genre = document.getElementById("genreFilter").value;
+      let results = _allMovies;
+      if (query) {
+        results = results.filter(m => m.title.toLowerCase().includes(query) || m.genre.toLowerCase().includes(query));
+      }
+      if (genre) {
+        results = results.filter(m => m.genre === genre);
+      }
+      renderGrid(results);
+    }
+
+    async function init() {
+      renderGuestBanner();
+      renderEnableNotifBannerIfRequested();
+      populateGenreFilter();
+      _allMovies = await API.getAllMovies();
+      renderGrid(_allMovies);
+
+      document.getElementById("searchInput").addEventListener("input", applyFilters);
+      document.getElementById("genreFilter").addEventListener("change", applyFilters);
+    }
+
+    init();
+  </script>
+</body>
+
+</html>

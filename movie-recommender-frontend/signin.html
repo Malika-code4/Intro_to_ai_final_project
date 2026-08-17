@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign in — CineMatch</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+
+<body>
+  <nav class="navbar" id="navbar"></nav>
+
+  <div class="auth-wrapper">
+    <div style="font-size:2.2rem;">🍿</div>
+    <h2>Sign in with email</h2>
+    <p>Keep your ratings and comments, and get notified by email when we find new picks based on your activity.</p>
+
+    <form id="signinForm">
+      <input type="email" id="emailInput" class="auth-input" placeholder="you@example.com" required />
+      <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">Continue</button>
+    </form>
+
+    <p style="margin-top:22px; font-size:0.8rem;">
+      <a href="browse.html" style="color:var(--accent-blue); font-weight:600;">Continue as guest instead →</a>
+    </p>
+
+    <div id="postSigninPanel"
+      style="display:none; margin-top:10px; text-align:left; background:rgba(255,255,255,0.04); padding:16px; border-radius:12px;">
+      <p style="margin:0 0 10px; font-size:0.85rem; color:var(--text-main);">✅ Signed in! Want CineMatch to email you
+        when new recommendations are ready based on your activity?</p>
+      <button class="btn btn-secondary btn-small" id="enableNotifBtn">🔔 Enable email notifications</button>
+    </div>
+  </div>
+
+  <footer>CineMatch — CS254 Final Project. Front-end demo, mock data only.</footer>
+
+  <div class="toast" id="toast">
+    <div class="toast-title" id="toastTitle"></div>
+    <div class="toast-body" id="toastBody"></div>
+    <button class="btn btn-primary btn-small" id="toastAction" style="display:none;"></button>
+  </div>
+
+  <script src="js/mockData.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    renderNavbar("signin");
+
+    document.getElementById("signinForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("emailInput").value.trim();
+      if (!email) return;
+      await API.signInWithEmail(email);
+      // After signing in, redirect the user to the browse page
+      // include a query flag so browse can optionally offer email notifications
+      window.location.href = "browse.html?showEnableNotif=1";
+    });
+
+    document.getElementById("enableNotifBtn").addEventListener("click", async () => {
+      await API.subscribeToNotifications();
+      document.getElementById("postSigninPanel").innerHTML = `<p style="margin:0; font-size:0.85rem;">🔔 Notifications enabled. Go rate a few movies, then check back — we'll simulate an email alert on the recommendations page.</p>`;
+
+      // Simulate the "backend sends an email, user clicks it, lands back
+      // on the site" flow with a toast + redirect after a short delay.
+      setTimeout(() => {
+        showToast(
+          "📧 New email from CineMatch",
+          "\"We found picks based on your activity!\" Click to open.",
+          { actionLabel: "Open recommendations", actionHref: "recommendations.html?from=email" }
+        );
+      }, 1500);
+    });
+  </script>
+</body>
+
+</html>

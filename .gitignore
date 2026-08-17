@@ -1,0 +1,14 @@
+﻿.ipynb_checkpoints/
+__pycache__/
+*.pyc
+data/
+processed_data/
+Movie_lens_2024/
+plots/
+*.csv
+*.zip
+*.npz
+*.pkl
+*.db
+*.log
+.vscode/

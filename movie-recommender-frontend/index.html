@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CineMatch — Discover your next favorite movie</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+
+<body>
+  <nav class="navbar" id="navbar"></nav>
+
+  <section class="hero">
+    <h1>Find movies you'll<br /><span>actually</span> love.</h1>
+    <p>Rate and comment on movies as a guest, or sign in to get personalized picks delivered straight to your inbox.</p>
+    <div class="cta-row">
+      <a href="browse.html" class="btn btn-primary">🎬 Browse as guest</a>
+      <a href="signin.html" class="btn btn-secondary">✉️ Sign in with email</a>
+    </div>
+  </section>
+
+  <div class="page-container">
+    <div class="section-header">
+      <h2>Bright movie discovery</h2>
+      <span class="subtitle">Explore rated picks, browse as a guest, and save your favorite recommendations with one
+        click.</span>
+    </div>
+    <div class="feature-row">
+      <article class="feature-card">
+        <div class="emoji">👤</div>
+        <h3>Browse without signing in</h3>
+        <p>Jump straight into the catalog, rate what you love, and see friendly suggestions as you explore.</p>
+      </article>
+      <article class="feature-card">
+        <div class="emoji">✨</div>
+        <h3>Personalized movie ideas</h3>
+        <p>Our bright recommendations focus on genres and ratings that match your taste, not boring generic picks.</p>
+      </article>
+      <article class="feature-card">
+        <div class="emoji">📧</div>
+        <h3>Save your activity</h3>
+        <p>Sign in to keep your ratings and comments, and receive new movie alerts based on what you already enjoy.</p>
+      </article>
+    </div>
+  </div>
+
+  <footer>CineMatch — CS254 Final Project. Front-end demo, mock data only.</footer>
+
+  <!-- Modal + toast markup (unused on this page but kept for consistency; harmless if not opened) -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <button class="modal-close" id="modalCloseBtn">✕</button>
+      <div class="modal-poster" id="modalPosterBg">
+        <h3 id="modalTitle"></h3>
+      </div>
+      <div class="modal-body">
+        <p id="modalMeta" style="color:var(--text-muted); font-size:0.85rem; margin-top:0;"></p>
+        <div class="star-picker" id="starPicker"></div>
+        <textarea class="comment-box" id="commentInput" placeholder="What did you think?"></textarea>
+        <button class="btn btn-primary btn-small" id="commentSubmitBtn" style="margin-top:10px;">Post comment</button>
+        <div class="comment-list" id="commentList"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">
+    <div class="toast-title" id="toastTitle"></div>
+    <div class="toast-body" id="toastBody"></div>
+    <button class="btn btn-primary btn-small" id="toastAction" style="display:none;"></button>
+  </div>
+
+  <script src="js/mockData.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/main.js"></script>
+  <script>renderNavbar("home");</script>
+</body>
+
+</html>
